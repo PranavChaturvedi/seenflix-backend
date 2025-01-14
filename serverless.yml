@@ -1,0 +1,14 @@
+# "org" ensures this Service is used with the correct Serverless Framework Access Key.
+org: serverlessbackend
+# "service" is the name of this project. This will also be added to your AWS resource names.
+service: seenFlix-backend
+
+provider:
+  name: aws
+  runtime: python3.12
+
+functions:
+  rateHandler:
+    handler: handler.run
+    events:
+      - schedule: rate(1 minute)
