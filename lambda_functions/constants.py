@@ -1,3 +1,8 @@
 FILMS_LINK="https://whatson-assets.vercel.app/films_ids.txt" 
 SERIES_LINK="https://whatson-assets.vercel.app/series_ids.txt"
 BACKUP_UPLOAD_BUCKET=""
+SUPABASE_PORT=""
+SUPABASE_USER=""
+SUPABASE_DB=""
+SUPABASE_PASSWORD=""
+SUPABASE_HOST=""
