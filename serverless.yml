@@ -10,11 +10,24 @@ provider:
 functions:
   imdb_cron_backup:
     handler: lambda_function.imdb_id_backup.handler
+    description: CRON lambda to save the csv backups of movies and tv shows
     events:
       - schedule: 
           rate: cron(0 0 * * SUN)
           enabled: true
 
+custom:
+  serverlessSsmFetch:
+    SUPABASE_HOST: /aws/ssm/parameter/supabase/db/host
+    SUPABASE_PASSWORD: /aws/ssm/parameter/supabase/db/password
+    SUPABASE_PORT: /aws/ssm/parameter/supabase/db/port
+    SUPABASE_USER: /aws/ssm/parameter/supabase/db/user
+
+
+
+
 
 plugins:
   - serverless-python-requirements
+  - serverless-offline
+  - serverless-ssm-fetch
