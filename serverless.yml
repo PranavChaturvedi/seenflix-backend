@@ -9,12 +9,20 @@ provider:
 
 functions:
   imdb_cron_backup:
-    handler: lambda_function.imdb_id_backup.handler
+    handler: lambda_functions.imdb_id_backup.handler
     description: CRON lambda to save the csv backups of movies and tv shows
     events:
       - schedule: 
-          rate: cron(0 0 * * SUN)
+          rate: cron(0 0 ? * SUN *)
           enabled: true
+
+  addEntry:
+    handler: lambda_functions.add_entry.handler
+    description: Add Entry for a User in the DB
+    events:
+      - http:
+          path: /add-entry
+          method: POST 
 
 custom:
   serverlessSsmFetch:
