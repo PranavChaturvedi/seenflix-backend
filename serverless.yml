@@ -38,6 +38,8 @@ custom:
     SUPABASE_PASSWORD: /aws/ssm/parameter/supabase/db/password
     SUPABASE_PORT: /aws/ssm/parameter/supabase/db/port
     SUPABASE_USER: /aws/ssm/parameter/supabase/db/user
+    TMBD_API_KEY: /aws/ssm/parameter/tmdb/api/key
+    TMDB_API_URL: /aws/ssm/parameter/tdmb/api/url
 
 
 
