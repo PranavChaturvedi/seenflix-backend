@@ -1,2 +1,0 @@
-1) TMDB api has most of the stuff but no info about seasons and the respective episodes.
-2) Check the OMDB API if it has any more stuff.
