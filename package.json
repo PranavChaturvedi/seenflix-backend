@@ -11,8 +11,7 @@
   "devDependencies": {
     "serverless": "^4.4.18",
     "serverless-offline": "^14.4.0",
-    "serverless-python-requirements": "^6.1.1",
-    "serverless-ssm-fetch": "^2.0.0"
+    "serverless-python-requirements": "^6.1.1"
   },
   "overrides": {
     "serverless-python-requirements": {

@@ -1,5 +1,5 @@
 import pandas as pd
-import constants
+from . import constants
 import boto3
 import http
 

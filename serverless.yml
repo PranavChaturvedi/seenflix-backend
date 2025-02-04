@@ -7,6 +7,15 @@ provider:
   name: aws
   runtime: python3.12
 
+custom:
+  supabaseEnv: &supabaseEnv 
+    SUPABASE_HOST: ${env:SUPBASE_HOST, ssm:/supabase/db/host}
+    SUPABASE_PASSWORD: ${env:SUPBASE_PASSWORD, ssm:/supabase/db/password}
+    SUPABASE_PORT: ${env:SUPBASE_PORT, ssm:/supabase/db/port}
+    SUPABASE_USER: ${env:SUPBASE_USER, ssm:/supabase/db/user}
+    # TMBD_API_KEY: /aws/ssm/parameter/tmdb/api/key
+    # TMDB_API_URL: /aws/ssm/parameter/tdmb/api/url
+
 functions:
   imdb_cron_backup:
     handler: lambda_functions.imdb_id_backup.handler
@@ -15,8 +24,13 @@ functions:
       - schedule: 
           rate: cron(0 0 ? * SUN *)
           enabled: true
+      - http:
+          path: /test-cron
+          method: POST 
 
-  load db:
+
+  # This Lambda should start a fargate task
+  load_db:
     handler: lambda_functions.load_db.handler
     description: CRON lambda to load the db using the API responses 
     events:
@@ -32,20 +46,9 @@ functions:
           path: /add-entry
           method: POST 
 
-custom:
-  serverlessSsmFetch:
-    SUPABASE_HOST: /aws/ssm/parameter/supabase/db/host
-    SUPABASE_PASSWORD: /aws/ssm/parameter/supabase/db/password
-    SUPABASE_PORT: /aws/ssm/parameter/supabase/db/port
-    SUPABASE_USER: /aws/ssm/parameter/supabase/db/user
-    TMBD_API_KEY: /aws/ssm/parameter/tmdb/api/key
-    TMDB_API_URL: /aws/ssm/parameter/tdmb/api/url
-
-
 
 
 
 plugins:
   - serverless-python-requirements
   - serverless-offline
-  - serverless-ssm-fetch
