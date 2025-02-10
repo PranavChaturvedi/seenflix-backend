@@ -6,13 +6,23 @@ service: seenflix-backend
 provider:
   name: aws
   runtime: python3.12
+  region: ap-south-1
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - ssm:GetParameter
+            - ssm:GetParameters
+          Resource: 
+            - arn:aws:ssm:${aws:region}:${aws:accountId}:parameter/supabase/db/*
 
 custom:
   supabaseEnv: &supabaseEnv 
-    SUPABASE_HOST: ${env:SUPBASE_HOST, ssm:/supabase/db/host}
-    SUPABASE_PASSWORD: ${env:SUPBASE_PASSWORD, ssm:/supabase/db/password}
-    SUPABASE_PORT: ${env:SUPBASE_PORT, ssm:/supabase/db/port}
-    SUPABASE_USER: ${env:SUPBASE_USER, ssm:/supabase/db/user}
+    SUPABASE_HOST: ${env:SUPABASE_HOST, ssm:/supabase/db/host}
+    SUPABASE_PASSWORD: ${env:SUPABASE_PASSWORD, ssm:/supabase/db/password}
+    SUPABASE_PORT: ${env:SUPABASE_PORT, ssm:/supabase/db/port}
+    SUPABASE_USER: ${env:SUPABASE_USER, ssm:/supabase/db/user}
     # TMBD_API_KEY: /aws/ssm/parameter/tmdb/api/key
     # TMDB_API_URL: /aws/ssm/parameter/tdmb/api/url
 
@@ -20,13 +30,12 @@ functions:
   imdb_cron_backup:
     handler: lambda_functions.imdb_id_backup.handler
     description: CRON lambda to save the csv backups of movies and tv shows
+    environment:
+      <<: *supabaseEnv
     events:
       - schedule: 
           rate: cron(0 0 ? * SUN *)
           enabled: true
-      - http:
-          path: /test-cron
-          method: POST 
 
 
   # This Lambda should start a fargate task
