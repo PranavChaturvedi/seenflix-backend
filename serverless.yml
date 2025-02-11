@@ -15,16 +15,18 @@ provider:
             - ssm:GetParameter
             - ssm:GetParameters
           Resource: 
-            - arn:aws:ssm:${aws:region}:${aws:accountId}:parameter/supabase/db/*
-
+            - arn:aws:ssm:${aws:region}:${aws:accountId}:parameter/*
 custom:
   supabaseEnv: &supabaseEnv 
     SUPABASE_HOST: ${env:SUPABASE_HOST, ssm:/supabase/db/host}
     SUPABASE_PASSWORD: ${env:SUPABASE_PASSWORD, ssm:/supabase/db/password}
     SUPABASE_PORT: ${env:SUPABASE_PORT, ssm:/supabase/db/port}
     SUPABASE_USER: ${env:SUPABASE_USER, ssm:/supabase/db/user}
-    # TMBD_API_KEY: /aws/ssm/parameter/tmdb/api/key
-    # TMDB_API_URL: /aws/ssm/parameter/tdmb/api/url
+  tmdbAPIEnv: &tmdbAPIEnv
+    TMBD_API_KEY: ${env:TMBD_API_KEY, ssm:/tmdb/api/key}
+    TMDB_API_URL: ${env:TMDB_API_URL, ssm:/tmdb/api/url}
+  backupsEnv: &backupsEnv
+    IMDB_IDS_BACKUP_BUCKET: ${env:IMDB_IDS_BACKUP_BUCKET, ssm:/imdb/backup/bucket/arn}
 
 functions:
   imdb_cron_backup:
