@@ -23,17 +23,17 @@ custom:
     SUPABASE_PORT: ${env:SUPABASE_PORT, ssm:/supabase/db/port}
     SUPABASE_USER: ${env:SUPABASE_USER, ssm:/supabase/db/user}
   tmdbAPIEnv: &tmdbAPIEnv
-    TMBD_API_KEY: ${env:TMBD_API_KEY, ssm:/tmdb/api/key}
-    TMDB_API_URL: ${env:TMDB_API_URL, ssm:/tmdb/api/url}
+    TMDB_API_KEY: ${env:TMDB_API_KEY, ssm:/tmdb/api/key}
+    TMDB_API_PATH: ${env:TMDB_API_URL, ssm:/tmdb/api/path}
   backupsEnv: &backupsEnv
-    IMDB_IDS_BACKUP_BUCKET: ${env:IMDB_IDS_BACKUP_BUCKET, ssm:/imdb/backup/bucket/arn}
+    IMDB_IDS_BACKUP_BUCKET: ${env:IMDB_IDS_BACKUP_BUCKET, ssm:/imdb/backup/bucket}
 
 functions:
   imdb_cron_backup:
     handler: lambda_functions.imdb_id_backup.handler
     description: CRON lambda to save the csv backups of movies and tv shows
     environment:
-      <<: *supabaseEnv
+      <<: *backupsEnv
     events:
       - schedule: 
           rate: cron(0 0 ? * SUN *)
