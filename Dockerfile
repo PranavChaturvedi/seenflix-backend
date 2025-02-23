@@ -22,6 +22,7 @@ WORKDIR /opt
 COPY pyproject.toml .
 COPY models/sa_models.py models/.
 COPY fargate_tasks/load_db.py .
+COPY .env .
 
 # Create a virtual environment
 RUN uv venv --python 3.11
