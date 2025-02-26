@@ -19,6 +19,7 @@ SeenFlixAggregated = Table(
     Column("tagline",TEXT),
     Column("overview",TEXT),
     Column("status",TEXT),
+    Column("genre", ARRAY(dimensions=1, item_type=VARCHAR(20))),
     Column("release_date",DATE),
     Column("original_language",VARCHAR(10)),
     comment="Aggregated List for all avaiable Movies and Shows"
