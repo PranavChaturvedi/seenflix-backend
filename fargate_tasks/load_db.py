@@ -83,7 +83,7 @@ with supabase_engine.begin() as connection:
         entry["genre"] = [i["name"] for i in misc_response["genres"]]
 
         # make it insert into update
-        connection.execute(insert(SeenFlixAggregated).values(entry))        
+        connection.execute(insert(SeenFlixAggregated).values(entry).on_conflict_do_update(set_=entry))        
 
 # Loop through Movies and Add inside SeenFlix aggregated (insert on conflict do upadate)
 
