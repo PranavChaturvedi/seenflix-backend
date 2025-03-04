@@ -1,9 +1,11 @@
-from models.sa_models import SeenFlixAggregated, TVEpisodeCount, metadata
+from models.sa_models import SeenFlixAggregated, metadata
 import boto3
 from dotenv import load_dotenv
-from sqlalchemy import create_engine, insert
+from sqlalchemy import create_engine
+from sqlalchemy.dialects import postgresql as pg
 import pandas as pd
 import requests
+import time
 
 load_dotenv(".env")
 
@@ -20,9 +22,7 @@ supabase_db_result = ssm_client.get_parameters_by_path(
     Recursive=True,
 )
 tmdb_result = ssm_client.get_parameters_by_path(
-    Path="/tmdb/",
-    Recursive=True,
-    WithDecryption=True
+    Path="/tmdb/", Recursive=True, WithDecryption=True
 )
 s3_backup_bucket = (
     ssm_client.get_parameter(Name="/imdb/backup/bucket")
@@ -56,12 +56,18 @@ supabase_engine = create_engine(connection_string)
 # Create tables if not created already
 
 with supabase_engine.begin() as connection:
-    metadata.create_all(bind=connection,checkfirst=True)
-    
-    films_imdb_ids = films_df['IMDB_ID'].tolist()
+    print("Connection has been established to Supabase")
+    metadata.create_all(bind=connection, checkfirst=True)
+
+    films_imdb_ids = films_df["IMDB_ID"].tolist()
+    print(f"Adding Data for {len(films_imdb_ids)} films.")
+    count = 0
     for imdb_id in films_imdb_ids:
         api_url = f"https://{tmdb_api_params['path']}/3/find/{imdb_id}?api_key={tmdb_api_params['key']}&external_source=imdb_id"
         response = requests.get(api_url).json()
+
+        if len(response.get("movie_results",[])) <= 0:
+            continue
         movie_detail = response["movie_results"][0]
         id = movie_detail["id"]
         entry = {
@@ -70,10 +76,11 @@ with supabase_engine.begin() as connection:
             "poster_path": movie_detail["poster_path"],
             "original_language": movie_detail["original_language"],
             "release_date": movie_detail["release_date"],
-            "imdb_id" : imdb_id,
-            "title" : movie_detail["title"],
+            "imdb_id": imdb_id,
+            "title": movie_detail["title"],
             "overview": movie_detail["overview"],
-        }      
+        }
+        time.sleep(2)
 
         misc_query_url = f"https://{tmdb_api_params['path']}/3/movie/{id}?api_key={tmdb_api_params['key']}"
         misc_response = requests.get(misc_query_url).json()
@@ -83,7 +90,17 @@ with supabase_engine.begin() as connection:
         entry["genre"] = [i["name"] for i in misc_response["genres"]]
 
         # make it insert into update
-        connection.execute(insert(SeenFlixAggregated).values(entry).on_conflict_do_update(set_=entry))        
+        connection.execute(
+            pg.insert(SeenFlixAggregated)
+            .values(entry)
+            .on_conflict_do_update(
+                index_elements=[SeenFlixAggregated.c.imdb_id], set_=entry
+            )
+        )
+        count += 1
+        if count % 500 == 0:
+            print(f"Added {count} movies")
+
 
 # Loop through Movies and Add inside SeenFlix aggregated (insert on conflict do upadate)
 
