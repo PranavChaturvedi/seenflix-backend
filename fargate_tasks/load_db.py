@@ -6,7 +6,7 @@ from sqlalchemy.dialects import postgresql as pg
 import requests
 import gzip
 import json
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import datetime
 from io import BytesIO
 import time
@@ -36,45 +36,52 @@ for param in tmdb_result.get("Parameters"):
 
 connection_string = f"postgresql+psycopg2://{supabase_db_params['user']}:{supabase_db_params['password']}@{supabase_db_params['host']}:{supabase_db_params['port']}/postgres"
 
-supabase_engine = create_engine(connection_string)
+supabase_engine = create_engine(connection_string, pool_size=35, max_overflow=32)
 
 # Create tables if not created already
 
+session = requests.Session()
+
 
 def add_media_into_supbase(tmdb_id, media_type):
-    with supabase_engine.begin() as connection:
-        api_url = f"https://{tmdb_api_params['path']}/3/{media_type}/{tmdb_id}?api_key={tmdb_api_params['key']}"
-        response = requests.get(api_url, timeout=(30, 30))
-        if response.status_code != 200:
-            return
-        movie_detail = response.json()
-        if not movie_detail.get("imdb_id"):
-            return
-        entry = {
-            "type": media_type,
-            "backdrop_path": movie_detail["backdrop_path"],
-            "poster_path": movie_detail["poster_path"],
-            "original_language": movie_detail["original_language"],
-            "release_date": movie_detail["release_date"],
-            "imdb_id": movie_detail["imdb_id"],
-            "title": movie_detail["title"],
-            "homepage": movie_detail["homepage"],
-            "overview": movie_detail["overview"],
-            "status": movie_detail["status"],
-            "tagline": movie_detail["tagline"],
-            "genre": [i["name"] for i in movie_detail["genres"]],
-        }
+    try:
+        with supabase_engine.begin() as connection:
+            api_url = f"https://{tmdb_api_params['path']}/3/{media_type}/{tmdb_id}?api_key={tmdb_api_params['key']}"
+            response = session.get(api_url, timeout=10)
+            if response.status_code != 200:
+                return {"tmdb_id": tmdb_id, "status": "failed", "error": "HTTP error"}
 
-        # make it insert into update
-        connection.execute(
-            pg.insert(SeenFlixAggregated)
-            .values(entry)
-            .on_conflict_do_update(
-                index_elements=[SeenFlixAggregated.c.imdb_id], set_=entry
+            movie_detail = response.json()
+            if not movie_detail.get("imdb_id"):
+                return {"tmdb_id": tmdb_id, "status": "skipped", "error": "No IMDb ID"}
+
+            entry = {
+                "type": media_type,
+                "backdrop_path": movie_detail["backdrop_path"],
+                "poster_path": movie_detail["poster_path"],
+                "original_language": movie_detail["original_language"],
+                "release_date": movie_detail["release_date"],
+                "imdb_id": movie_detail["imdb_id"],
+                "title": movie_detail["title"],
+                "homepage": movie_detail["homepage"],
+                "overview": movie_detail["overview"],
+                "status": movie_detail["status"],
+                "tagline": movie_detail["tagline"],
+                "genre": [i["name"] for i in movie_detail["genres"]],
+            }
+
+            connection.execute(
+                pg.insert(SeenFlixAggregated)
+                .values(entry)
+                .on_conflict_do_update(
+                    index_elements=[SeenFlixAggregated.c.imdb_id], set_=entry
+                )
             )
-        )
-        connection.commit()
-        time.sleep(1)
+            time.sleep(1)  # Rate limiting
+            return {"tmdb_id": tmdb_id, "status": "success"}
+
+    except Exception as e:
+        return {"tmdb_id": tmdb_id, "status": "failed", "error": str(e)}
 
 
 with supabase_engine.begin() as connection:
@@ -98,17 +105,32 @@ with gzip.GzipFile(fileobj=BytesIO(response.content)) as gz:
     movie_tmdb_ids = [obj["id"] for obj in movie_tmdb_objects]
 print(f"Adding Data for {len(movie_tmdb_ids)} films.")
 
-worker_inputs = list(
-    zip(
-        movie_tmdb_ids,
-        ["movie"] * len(movie_tmdb_ids),
-    )
-)
+worker_inputs = list(zip(movie_tmdb_ids, ["movie"] * len(movie_tmdb_ids)))
 
-# with ThreadPoolExecutor(max_workers=25) as executor:
-# executor.map(lambda input : add_media_into_supbase(input[0],input[1]), worker_inputs)
+results = []
+result_dict = {}
+with ThreadPoolExecutor(max_workers=30) as executor:
+    # Submit tasks to the executor
+    futures = [
+        executor.submit(add_media_into_supbase, tmdb_id, media_type)
+        for tmdb_id, media_type in worker_inputs
+    ]
 
-for input in worker_inputs[:500]:
-    add_media_into_supbase(input[0], input[1])
+    # Collect results as they complete
+    for future in as_completed(futures):
+        try:
+            result = future.result()
+            results.append(result)
+        except Exception as e:
+            results.append({"status": "failed", "error": str(e)})
+
+# Print or process results after all threads are done
+print("Processing completed. Results:")
+for result in results:
+    if result["status"] not in result_dict.keys():
+        result_dict[result["status"]] = 0
+    else:
+        result_dict[result["status"]] += 1
+print(result_dict)
 
 # TV Series Addition

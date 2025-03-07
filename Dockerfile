@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM python:3.12-slim
 
 # Update and upgrade the system packages
 RUN apt update && apt upgrade -y
@@ -25,7 +25,7 @@ COPY fargate_tasks/load_db.py .
 COPY .env .
 
 # Create a virtual environment
-RUN uv venv --python 3.11
+RUN uv venv --python 3.12
 
 # Activate the virtual environment and sync dependencies
 RUN . .venv/bin/activate && uv sync
