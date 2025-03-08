@@ -1,6 +1,5 @@
 from models.sa_models import SeenFlixAggregated, metadata
 import boto3
-from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.dialects import postgresql as pg
 import requests
@@ -11,7 +10,6 @@ import datetime
 from io import BytesIO
 import time
 
-load_dotenv(".env")
 
 
 # Getting Supbase and TMDB Variables from SSM
