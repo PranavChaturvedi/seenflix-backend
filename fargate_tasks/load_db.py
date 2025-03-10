@@ -11,7 +11,6 @@ from io import BytesIO
 import time
 
 
-
 # Getting Supbase and TMDB Variables from SSM
 
 ssm_client = boto3.client("ssm")
@@ -45,27 +44,40 @@ def add_media_into_supbase(tmdb_id, media_type):
     try:
         with supabase_engine.begin() as connection:
             api_url = f"https://{tmdb_api_params['path']}/3/{media_type}/{tmdb_id}?api_key={tmdb_api_params['key']}"
+            if media_type == "tv":
+                api_url += "&append_to_response=external_ids"
             response = session.get(api_url, timeout=10)
             if response.status_code != 200:
-                return {"tmdb_id": tmdb_id, "status": "failed", "error": "HTTP error"}
+                return {
+                    "tmdb_id": tmdb_id,
+                    "status": "failed",
+                    "error": f"HTTP error : {response.status_code}",
+                }
 
-            movie_detail = response.json()
-            if not movie_detail.get("imdb_id"):
+            media_detail = response.json()
+            if not media_detail.get("imdb_id") and not media_detail.get(
+                "external_ids", {}
+            ).get("imdb_id"):
                 return {"tmdb_id": tmdb_id, "status": "skipped", "error": "No IMDb ID"}
 
             entry = {
                 "type": media_type,
-                "backdrop_path": movie_detail["backdrop_path"],
-                "poster_path": movie_detail["poster_path"],
-                "original_language": movie_detail["original_language"],
-                "release_date": movie_detail["release_date"],
-                "imdb_id": movie_detail["imdb_id"],
-                "title": movie_detail["title"],
-                "homepage": movie_detail["homepage"],
-                "overview": movie_detail["overview"],
-                "status": movie_detail["status"],
-                "tagline": movie_detail["tagline"],
-                "genre": [i["name"] for i in movie_detail["genres"]],
+                "backdrop_path": media_detail["backdrop_path"],
+                "poster_path": media_detail["poster_path"],
+                "original_language": media_detail["original_language"],
+                "release_date": media_detail.get(
+                    "release_date", media_detail.get("first_air_date")
+                )
+                or None,
+                "imdb_id": media_detail.get(
+                    "imdb_id", media_detail.get("external_ids", {}).get("imdb_id")
+                ),
+                "title": media_detail.get("title", media_detail.get("name")),
+                "homepage": media_detail["homepage"],
+                "overview": media_detail["overview"],
+                "status": media_detail["status"],
+                "tagline": media_detail["tagline"],
+                "genre": [i["name"] for i in media_detail["genres"]],
             }
 
             connection.execute(
@@ -88,7 +100,8 @@ with supabase_engine.begin() as connection:
 
 # Movies addition
 
-tmdb_ids = []
+print("Movie Addition Begins")
+
 two_days_ago_datetime = datetime.datetime.today() - datetime.timedelta(days=2)
 two_days_ago_datetime = two_days_ago_datetime.date().strftime("%m_%d_%Y")
 
@@ -107,7 +120,8 @@ worker_inputs = list(zip(movie_tmdb_ids, ["movie"] * len(movie_tmdb_ids)))
 
 results = []
 result_dict = {}
-with ThreadPoolExecutor(max_workers=30) as executor:
+error_dict = {}
+with ThreadPoolExecutor(max_workers=25) as executor:
     # Submit tasks to the executor
     futures = [
         executor.submit(add_media_into_supbase, tmdb_id, media_type)
@@ -123,12 +137,67 @@ with ThreadPoolExecutor(max_workers=30) as executor:
             results.append({"status": "failed", "error": str(e)})
 
 # Print or process results after all threads are done
-print("Processing completed. Results:")
+print("Movies Processing completed. Results:")
 for result in results:
     if result["status"] not in result_dict.keys():
-        result_dict[result["status"]] = 0
+        result_dict[result["status"]] = 1
     else:
         result_dict[result["status"]] += 1
+    if result["status"] == "failed":
+        if result["error"] not in error_dict.keys():
+            error_dict[result["error"]] = 1
+        else:
+            error_dict[result["error"]] += 1
 print(result_dict)
+print(error_dict)
 
 # TV Series Addition
+
+print("TV Addition Begins")
+
+tv_series_file_name = f"tv_series_ids_{two_days_ago_datetime}.json.gz"
+download_tv_gzip_url = f"http://files.tmdb.org/p/exports/{tv_series_file_name}"
+tv_response = requests.get(download_tv_gzip_url, allow_redirects=True)
+
+tv_series_objects = []
+with gzip.GzipFile(fileobj=BytesIO(tv_response.content)) as gz:
+    for line in gz:
+        tv_series_objects.append(json.loads(line.decode()))
+    tv_tmdb_ids = [obj["id"] for obj in tv_series_objects]
+
+print(f"Adding Data for {len(tv_tmdb_ids)} TV Series.")
+
+worker_inputs = list(zip(tv_tmdb_ids, ["tv"] * len(tv_tmdb_ids)))
+
+results = []
+result_dict = {}
+error_dict = {}
+with ThreadPoolExecutor(max_workers=25) as executor:
+    # Submit tasks to the executor
+    futures = [
+        executor.submit(add_media_into_supbase, tmdb_id, media_type)
+        for tmdb_id, media_type in worker_inputs
+    ]
+
+    # Collect results as they complete
+    for future in as_completed(futures):
+        try:
+            result = future.result()
+            results.append(result)
+        except Exception as e:
+            results.append({"status": "failed", "error": str(e)})
+
+# Print or process results after all threads are done
+print("TV Show Processing completed. Results:")
+for result in results:
+    if result["status"] not in result_dict.keys():
+        result_dict[result["status"]] = 1
+    else:
+        result_dict[result["status"]] += 1
+    if result["status"] == "failed":
+        if result["error"] not in error_dict.keys():
+            error_dict[result["error"]] = 1
+        else:
+            error_dict[result["error"]] += 1
+print(result_dict)
+print(error_dict)

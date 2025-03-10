@@ -11,7 +11,7 @@ SeenFlixAggregated = Table(
     metadata,
     Column("auto_id", INTEGER, primary_key=True, autoincrement="auto"),
     Column("imdb_id",VARCHAR(100),unique=True),
-    Column("type",ENUM("movie","tv_show",name="media_type")),
+    Column("type",ENUM("movie","tv",name="media_type")),
     Column("homepage",VARCHAR(255)),
     Column("poster_path",VARCHAR(100)),
     Column("backdrop_path",VARCHAR(100)),
