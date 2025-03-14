@@ -59,6 +59,15 @@ def add_media_into_supbase(tmdb_id, media_type):
                 "external_ids", {}
             ).get("imdb_id"):
                 return {"tmdb_id": tmdb_id, "status": "skipped", "error": "No IMDb ID"}
+            elif (
+                media_detail.get("imdb_id")
+                or media_detail.get("external_ids", {}).get("imdb_id")
+            ) == "tt0137523":
+                return {
+                    "tmdb_id": tmdb_id,
+                    "status": "skipped",
+                    "error": "Special Case : Fight Club",
+                }
 
             entry = {
                 "type": media_type,
