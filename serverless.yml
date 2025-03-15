@@ -2,11 +2,13 @@
 org: serverlessbackend
 # "service" is the name of this project. This will also be added to your AWS resource names.
 service: seenflix-backend
+useDotenv: true
 
 provider:
   name: aws
   runtime: python3.12
   region: ap-south-1
+  stage: ${opt:stage, 'v1'}
   iam:
     role:
       statements:
@@ -17,6 +19,8 @@ provider:
           Resource: 
             - arn:aws:ssm:${aws:region}:${aws:accountId}:parameter/*
 custom:
+  pythonRequirements:
+    filename: pyproject.toml
   supabaseEnv: &supabaseEnv 
     SUPABASE_HOST: ${env:SUPABASE_HOST, ssm:/supabase/db/host}
     SUPABASE_PASSWORD: ${env:SUPABASE_PASSWORD, ssm:/supabase/db/password}
@@ -25,19 +29,15 @@ custom:
   tmdbAPIEnv: &tmdbAPIEnv
     TMDB_API_KEY: ${env:TMDB_API_KEY, ssm:/tmdb/api/key}
     TMDB_API_PATH: ${env:TMDB_API_URL, ssm:/tmdb/api/path}
-  backupsEnv: &backupsEnv
-    IMDB_IDS_BACKUP_BUCKET: ${env:IMDB_IDS_BACKUP_BUCKET, ssm:/imdb/backup/bucket}
 
 functions:
-  imdb_cron_backup:
-    handler: lambda_functions.imdb_id_backup.handler
-    description: CRON lambda to save the csv backups of movies and tv shows
-    environment:
-      <<: *backupsEnv
+  imdbCronLoader:
+    handler: lambda_functions.imdb_cron_loader.handler
+    description: CRON lambda to run ECS Fargate task for loading db
     events:
       - schedule: 
           rate: cron(0 0 ? * SUN *)
-          enabled: true
+          enabled: false
 
 
   # Fargate Task for loading the DB.
@@ -46,11 +46,34 @@ functions:
     handler: lambda_functions.add_entry.handler
     description: Add Entry for a User in the DB
     events:
-      - http:
+      - httpApi:
           path: /add-entry
           method: POST 
   
   # GET API for the Search of movies and tv shows
+  searchMedia:
+    handler: lambda_functions.search_media.handler
+    description: GET API for searching media
+    events:
+      - httpApi:
+          path: /search
+          method: GET
+  
+  getWatchlist:
+    handler: lambda_functions.get_watchlist.handler
+    description: GET API to get User Watchlist paginated
+    events:
+      - httpApi:
+          path: /sf-watchlist
+          method: GET
+    
+  getRecommnedations:
+    handler: lambda_functions.get_recommendations.handler
+    description: GET API for user recommendations
+    events:
+      - httpApi:
+          path: /recommendations
+          method: GET
 
   # GET API for the showlist of a user (read up on authorization/ authentication of APIs)
 
