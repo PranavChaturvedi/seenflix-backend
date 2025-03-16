@@ -18,9 +18,15 @@ provider:
             - ssm:GetParameters
           Resource: 
             - arn:aws:ssm:${aws:region}:${aws:accountId}:parameter/*
+
+package:
+    patterns:
+      - '!node_modules/**'
+      - '!.venv/**'
+      - '!apienv/**'
+      - '!__pycache__/**'
+
 custom:
-  pythonRequirements:
-    filename: pyproject.toml
   supabaseEnv: &supabaseEnv 
     SUPABASE_HOST: ${env:SUPABASE_HOST, ssm:/supabase/db/host}
     SUPABASE_PASSWORD: ${env:SUPABASE_PASSWORD, ssm:/supabase/db/password}
@@ -49,6 +55,7 @@ functions:
       - httpApi:
           path: /add-entry
           method: POST 
+    timeout: 60
   
   # GET API for the Search of movies and tv shows
   searchMedia:
@@ -58,6 +65,7 @@ functions:
       - httpApi:
           path: /search
           method: GET
+    timeout: 60
   
   getWatchlist:
     handler: lambda_functions.get_watchlist.handler
@@ -66,6 +74,7 @@ functions:
       - httpApi:
           path: /sf-watchlist
           method: GET
+    timeout: 60
     
   getRecommnedations:
     handler: lambda_functions.get_recommendations.handler
@@ -74,6 +83,7 @@ functions:
       - httpApi:
           path: /recommendations
           method: GET
+    timeout: 60
 
   # GET API for the showlist of a user (read up on authorization/ authentication of APIs)
 
