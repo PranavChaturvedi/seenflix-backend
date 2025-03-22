@@ -28,7 +28,8 @@ SeenFlixAggregated = Table(
 UserWatchLog = Table(
     "user_watchlog",
     metadata,
-    Column("user_id", VARCHAR(255), primary_key=True),
+    Column("auto_id", INTEGER, primary_key=True, autoincrement="auto"),
+    Column("user_id", VARCHAR(255), nullable=False),
     Column("imdb_id", VARCHAR(100), nullable=False),
     Column("rating", INTEGER, nullable=False),
     Column("comment", TEXT),

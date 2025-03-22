@@ -18,6 +18,11 @@ provider:
             - ssm:GetParameters
           Resource: 
             - arn:aws:ssm:${aws:region}:${aws:accountId}:parameter/*
+  environment:
+    SUPABASE_HOST: ${env:SUPABASE_HOST, ssm:/supabase/db/host}
+    SUPABASE_PASSWORD: ${env:SUPABASE_PASSWORD, ssm:/supabase/db/password}
+    SUPABASE_PORT: ${env:SUPABASE_PORT, ssm:/supabase/db/port}
+    SUPABASE_USER: ${env:SUPABASE_USER, ssm:/supabase/db/user}
 
 package:
     patterns:
@@ -26,11 +31,6 @@ package:
       - '!__pycache__/**'
 
 custom:
-  supabaseEnv: &supabaseEnv 
-    SUPABASE_HOST: ${env:SUPABASE_HOST, ssm:/supabase/db/host}
-    SUPABASE_PASSWORD: ${env:SUPABASE_PASSWORD, ssm:/supabase/db/password}
-    SUPABASE_PORT: ${env:SUPABASE_PORT, ssm:/supabase/db/port}
-    SUPABASE_USER: ${env:SUPABASE_USER, ssm:/supabase/db/user}
   tmdbAPIEnv: &tmdbAPIEnv
     TMDB_API_KEY: ${env:TMDB_API_KEY, ssm:/tmdb/api/key}
     TMDB_API_PATH: ${env:TMDB_API_URL, ssm:/tmdb/api/path}
@@ -101,3 +101,4 @@ functions:
 plugins:
   - serverless-python-requirements
   - serverless-offline
+  - serverless-dotenv-plugin

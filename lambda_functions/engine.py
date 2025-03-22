@@ -1,6 +1,10 @@
 import sqlalchemy
 import os
 
+from dotenv import load_dotenv
+
+load_dotenv(".env")
+
 db_url = sqlalchemy.URL(
     drivername="postgresql+psycopg2",
     username=os.environ["SUPABASE_USER"],

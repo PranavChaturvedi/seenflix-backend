@@ -6,7 +6,7 @@ from .common import DateJSONEncode
 
 
 def handler(event, context):
-    query_params = event.get("queryStringParameters")
+    query_params = event.get("queryStringParameters",{})
     if "title" not in query_params.keys():
         raise ValueError("No Title filter for Searching")
     title = query_params["title"]
@@ -32,5 +32,6 @@ def handler(event, context):
     )
 
     data = connection.execute(query).mappings().all()
+    connection.commit()
     data = [dict(mapping) for mapping in data]
     return {"statusCode": 200, "body": json.dumps(data, cls=DateJSONEncode)}
