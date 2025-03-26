@@ -6,6 +6,8 @@ from models.sa_models import SeenFlixAggregated, UserWatchLog
 
 
 def handler(event, context):
+
+    # Do we need a clerk library here???
     user_id = event.get("user_id")
     query = (
         select(
