@@ -6,9 +6,9 @@ from models.sa_models import SeenFlixAggregated, UserWatchLog
 
 
 def handler(event, context):
-
-    # Do we need a clerk library here???
-    user_id = event.get("user_id")
+    user_id = event.get("authorizer", {}).get("jwt", {}).get("claims").get("id", None)
+    if user_id is None:
+        return {"statusCode": 400, "body": "User ID not found"}
     query = (
         select(
             SeenFlixAggregated.c.imdb_id,
