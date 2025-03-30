@@ -6,11 +6,21 @@ from models.sa_models import SeenFlixAggregated, UserWatchLog
 
 
 def handler(event, context):
-    user_id = event.get("authorizer", {}).get("jwt", {}).get("claims").get("id", None)
+    user_id = (
+        event.get("requestContext", {})
+        .get("authorizer", {})
+        .get("jwt", {})
+        .get("claims", {})
+        .get("id", None)
+    )
     if user_id is None:
         return {"statusCode": 400, "body": "User ID not found"}
     query = (
         select(
+            UserWatchLog.c.rating,
+            UserWatchLog.c.comment,
+            UserWatchLog.c.status,
+            UserWatchLog.c.watched_till,
             SeenFlixAggregated.c.imdb_id,
             SeenFlixAggregated.c.type,
             SeenFlixAggregated.c.homepage,

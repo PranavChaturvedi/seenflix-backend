@@ -23,6 +23,9 @@ provider:
     SUPABASE_PASSWORD: ${env:SUPABASE_PASSWORD, ssm:/supabase/db/password}
     SUPABASE_PORT: ${env:SUPABASE_PORT, ssm:/supabase/db/port}
     SUPABASE_USER: ${env:SUPABASE_USER, ssm:/supabase/db/user}
+    ECS_TASK_EXECUTION_ROLE: ${env:ECS_TASK_EXECUTION_ROLE, ssm:/ecs/taskExectionArn}
+    VPC_SUBNETS: ${env:VPC_SUBNETS, ssm:/vpc/default/subnets}
+    VPC_SGROUP: ${env:VPC_SGROUP, ssm:/vpc/default/security_group}
   httpApi:
     authorizers:
       apiJwtAuthorizer:

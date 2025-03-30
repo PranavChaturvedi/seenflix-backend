@@ -1,6 +1,6 @@
 from sqlalchemy.dialects.postgresql import INTEGER, VARCHAR, TEXT, DATE, ARRAY, ENUM
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Table, MetaData, Column, ForeignKeyConstraint
+from sqlalchemy import Table, MetaData, Column, ForeignKeyConstraint, UniqueConstraint
 
 Base = declarative_base()
 
@@ -40,6 +40,7 @@ UserWatchLog = Table(
     ForeignKeyConstraint(
         ["imdb_id"], ["seenflix_aggregated.imdb_id"], name="imdb_fk_logs"
     ),
+    UniqueConstraint("user_id", "imdb_id", name="media_uniqueness"),
     comment="Table for storing user watchlogs",
 )
 
