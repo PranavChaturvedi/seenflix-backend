@@ -19,7 +19,7 @@ def handler(event, context):
         select(
             UserWatchLog.c.rating,
             UserWatchLog.c.comment,
-            UserWatchLog.c.status,
+            UserWatchLog.c.status.label("user_status"),
             UserWatchLog.c.watched_till,
             SeenFlixAggregated.c.imdb_id,
             SeenFlixAggregated.c.type,

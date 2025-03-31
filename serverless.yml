@@ -55,6 +55,7 @@ custom:
 
 
 functions:
+  # Fargate Task for loading the DB.
   imdbCronLoader:
     handler: lambda_functions.imdb_cron_loader.handler
     description: CRON lambda to run ECS Fargate task for loading db
@@ -64,9 +65,6 @@ functions:
           enabled: false
     timeout: 30
 
-
-  # Fargate Task for loading the DB.
-
   addEntry:
     handler: lambda_functions.add_entry.handler
     description: Add Entry for a User in the DB
@@ -74,6 +72,17 @@ functions:
       - httpApi:
           path: /add-entry
           method: POST
+          authorizer:
+            name: apiJwtAuthorizer
+    timeout: 30
+
+  deleteEntry:
+    handler: lambda_functions.delete_entry.handler
+    description: Delete Entry for a User in the DB
+    events:
+      - httpApi:
+          path: /delete-entry
+          method: DELETE
           authorizer:
             name: apiJwtAuthorizer
     timeout: 30
@@ -89,7 +98,8 @@ functions:
           authorizer:
             name: apiJwtAuthorizer
     timeout: 30
-  
+
+  # GET API for the showlist of a user (read up on authorization/ authentication of APIs)  
   getWatchlist:
     handler: lambda_functions.get_watchlist.handler
     description: GET API to get User Watchlist paginated
@@ -112,7 +122,6 @@ functions:
             name: apiJwtAuthorizer
     timeout: 30
 
-  # GET API for the showlist of a user (read up on authorization/ authentication of APIs)
 
 
 

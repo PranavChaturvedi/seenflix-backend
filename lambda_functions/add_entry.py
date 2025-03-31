@@ -12,11 +12,12 @@ def handler(event, context):
         .get("claims", {})
         .get("id", None)
     )
+    if user_id is None:
+        return {"statusCode": 400, "body": "User ID not found"}
     payload = json.loads(event.get("body", "{}"))
     if payload.get("imdb_id", None) is None:
         return {"statusCode": 400, "body": "Cannot add this Media"}
     entry = {**payload, "user_id": user_id}
-    UserWatchLog.create(bind=connection, checkfirst=True)
     insert_query = (
         pg.insert(UserWatchLog)
         .values(entry)
