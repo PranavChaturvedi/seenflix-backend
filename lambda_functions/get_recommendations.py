@@ -1,5 +1,5 @@
 from .engine import connection
-from sqlalchemy import select, func, case
+from sqlalchemy import select, func, case, and_
 import json
 from .common import DateJSONEncode
 from models.sa_models import SeenFlixAggregated, UserWatchLog
@@ -14,12 +14,10 @@ def handler(event, context):
         .get("claims", {})
         .get("id", None)
     )
-    if user_id is None:
-        return {"statusCode": 400, "body": "User ID not found"}
     query = (
         select(
             *SeenFlixAggregated.c,
-            case((UserWatchLog.c.user_id == user_id, "added"), else_="not_added").label(
+            case((and_(UserWatchLog.c.user_id == user_id,UserWatchLog.c.user_id.isnot(None)), "added"), else_="not_added").label(
                 "user_status"
             ),
         )
