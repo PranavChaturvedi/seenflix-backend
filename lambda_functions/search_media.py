@@ -29,7 +29,7 @@ def handler(event, context):
         )
         .where(func.upper(SeenFlixAggregated.c.title).like(f"{title}%"))
         .order_by(SeenFlixAggregated.c.release_date.desc())
-        .limit(8)
+        .limit(20)
     )
 
     data = connection.execute(query).mappings().all()
