@@ -9,6 +9,10 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import datetime
 from io import BytesIO
 import time
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument("-m", "--media", help="Select Media Type to Load")
 
 
 # Getting Supbase and TMDB Variables from SSM
@@ -107,106 +111,111 @@ with supabase_engine.begin() as connection:
     print("Connection has been established to Supabase")
     metadata.create_all(bind=connection, checkfirst=True)
 
-# Movies addition
-
-print("Movie Addition Begins")
 
 two_days_ago_datetime = datetime.datetime.today() - datetime.timedelta(days=2)
 two_days_ago_datetime = two_days_ago_datetime.date().strftime("%m_%d_%Y")
 
-movie_file_name = f"movie_ids_{two_days_ago_datetime}.json.gz"
-download_movie_gzip_url = f"http://files.tmdb.org/p/exports/{movie_file_name}"
-response = requests.get(download_movie_gzip_url, allow_redirects=True)
+args = parser.parse_args()
 
-movie_tmdb_objects = []
-with gzip.GzipFile(fileobj=BytesIO(response.content)) as gz:
-    for line in gz:
-        movie_tmdb_objects.append(json.loads(line.decode()))
-    movie_tmdb_ids = [obj["id"] for obj in movie_tmdb_objects]
-print(f"Adding Data for {len(movie_tmdb_ids)} films.")
+if args.media in ["both", "movie"]:
+    # Movies addition
 
-worker_inputs = list(zip(movie_tmdb_ids, ["movie"] * len(movie_tmdb_ids)))
+    print("Movie Addition Begins")
 
-results = []
-result_dict = {}
-error_dict = {}
-with ThreadPoolExecutor(max_workers=25) as executor:
-    # Submit tasks to the executor
-    futures = [
-        executor.submit(add_media_into_supbase, tmdb_id, media_type)
-        for tmdb_id, media_type in worker_inputs
-    ]
+    movie_file_name = f"movie_ids_{two_days_ago_datetime}.json.gz"
+    download_movie_gzip_url = f"http://files.tmdb.org/p/exports/{movie_file_name}"
+    response = requests.get(download_movie_gzip_url, allow_redirects=True)
 
-    # Collect results as they complete
-    for future in as_completed(futures):
-        try:
-            result = future.result()
-            results.append(result)
-        except Exception as e:
-            results.append({"status": "failed", "error": str(e)})
+    movie_tmdb_objects = []
+    with gzip.GzipFile(fileobj=BytesIO(response.content)) as gz:
+        for line in gz:
+            movie_tmdb_objects.append(json.loads(line.decode()))
+        movie_tmdb_ids = [obj["id"] for obj in movie_tmdb_objects]
+    print(f"Adding Data for {len(movie_tmdb_ids)} films.")
 
-# Print or process results after all threads are done
-print("Movies Processing completed. Results:")
-for result in results:
-    if result["status"] not in result_dict.keys():
-        result_dict[result["status"]] = 1
-    else:
-        result_dict[result["status"]] += 1
-    if result["status"] == "failed":
-        if result["error"] not in error_dict.keys():
-            error_dict[result["error"]] = 1
+    worker_inputs = list(zip(movie_tmdb_ids, ["movie"] * len(movie_tmdb_ids)))
+
+    results = []
+    result_dict = {}
+    error_dict = {}
+    with ThreadPoolExecutor(max_workers=25) as executor:
+        # Submit tasks to the executor
+        futures = [
+            executor.submit(add_media_into_supbase, tmdb_id, media_type)
+            for tmdb_id, media_type in worker_inputs
+        ]
+
+        # Collect results as they complete
+        for future in as_completed(futures):
+            try:
+                result = future.result()
+                results.append(result)
+            except Exception as e:
+                results.append({"status": "failed", "error": str(e)})
+
+    # Print or process results after all threads are done
+    print("Movies Processing completed. Results:")
+    for result in results:
+        if result["status"] not in result_dict.keys():
+            result_dict[result["status"]] = 1
         else:
-            error_dict[result["error"]] += 1
-print(result_dict)
-print(error_dict)
+            result_dict[result["status"]] += 1
+        if result["status"] == "failed":
+            if result["error"] not in error_dict.keys():
+                error_dict[result["error"]] = 1
+            else:
+                error_dict[result["error"]] += 1
+    print(result_dict)
+    print(error_dict)
 
 # TV Series Addition
 
-print("TV Addition Begins")
+if args.media in ["both", "tv"]:
+    print("TV Addition Begins")
 
-tv_series_file_name = f"tv_series_ids_{two_days_ago_datetime}.json.gz"
-download_tv_gzip_url = f"http://files.tmdb.org/p/exports/{tv_series_file_name}"
-tv_response = requests.get(download_tv_gzip_url, allow_redirects=True)
+    tv_series_file_name = f"tv_series_ids_{two_days_ago_datetime}.json.gz"
+    download_tv_gzip_url = f"http://files.tmdb.org/p/exports/{tv_series_file_name}"
+    tv_response = requests.get(download_tv_gzip_url, allow_redirects=True)
 
-tv_series_objects = []
-with gzip.GzipFile(fileobj=BytesIO(tv_response.content)) as gz:
-    for line in gz:
-        tv_series_objects.append(json.loads(line.decode()))
-    tv_tmdb_ids = [obj["id"] for obj in tv_series_objects]
+    tv_series_objects = []
+    with gzip.GzipFile(fileobj=BytesIO(tv_response.content)) as gz:
+        for line in gz:
+            tv_series_objects.append(json.loads(line.decode()))
+        tv_tmdb_ids = [obj["id"] for obj in tv_series_objects]
 
-print(f"Adding Data for {len(tv_tmdb_ids)} TV Series.")
+    print(f"Adding Data for {len(tv_tmdb_ids)} TV Series.")
 
-worker_inputs = list(zip(tv_tmdb_ids, ["tv"] * len(tv_tmdb_ids)))
+    worker_inputs = list(zip(tv_tmdb_ids, ["tv"] * len(tv_tmdb_ids)))
 
-results = []
-result_dict = {}
-error_dict = {}
-with ThreadPoolExecutor(max_workers=25) as executor:
-    # Submit tasks to the executor
-    futures = [
-        executor.submit(add_media_into_supbase, tmdb_id, media_type)
-        for tmdb_id, media_type in worker_inputs
-    ]
+    results = []
+    result_dict = {}
+    error_dict = {}
+    with ThreadPoolExecutor(max_workers=25) as executor:
+        # Submit tasks to the executor
+        futures = [
+            executor.submit(add_media_into_supbase, tmdb_id, media_type)
+            for tmdb_id, media_type in worker_inputs
+        ]
 
-    # Collect results as they complete
-    for future in as_completed(futures):
-        try:
-            result = future.result()
-            results.append(result)
-        except Exception as e:
-            results.append({"status": "failed", "error": str(e)})
+        # Collect results as they complete
+        for future in as_completed(futures):
+            try:
+                result = future.result()
+                results.append(result)
+            except Exception as e:
+                results.append({"status": "failed", "error": str(e)})
 
-# Print or process results after all threads are done
-print("TV Show Processing completed. Results:")
-for result in results:
-    if result["status"] not in result_dict.keys():
-        result_dict[result["status"]] = 1
-    else:
-        result_dict[result["status"]] += 1
-    if result["status"] == "failed":
-        if result["error"] not in error_dict.keys():
-            error_dict[result["error"]] = 1
+    # Print or process results after all threads are done
+    print("TV Show Processing completed. Results:")
+    for result in results:
+        if result["status"] not in result_dict.keys():
+            result_dict[result["status"]] = 1
         else:
-            error_dict[result["error"]] += 1
-print(result_dict)
-print(error_dict)
+            result_dict[result["status"]] += 1
+        if result["status"] == "failed":
+            if result["error"] not in error_dict.keys():
+                error_dict[result["error"]] = 1
+            else:
+                error_dict[result["error"]] += 1
+    print(result_dict)
+    print(error_dict)

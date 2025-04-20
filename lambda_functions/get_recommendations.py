@@ -17,9 +17,16 @@ def handler(event, context):
     query = (
         select(
             *SeenFlixAggregated.c,
-            case((and_(UserWatchLog.c.user_id == user_id,UserWatchLog.c.user_id.isnot(None)), "added"), else_="not_added").label(
-                "user_status"
-            ),
+            case(
+                (
+                    and_(
+                        UserWatchLog.c.user_id == user_id,
+                        UserWatchLog.c.user_id.isnot(None),
+                    ),
+                    "added",
+                ),
+                else_="not_added",
+            ).label("user_status"),
         )
         .select_from(
             SeenFlixAggregated.outerjoin(
