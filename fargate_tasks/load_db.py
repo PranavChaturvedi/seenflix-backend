@@ -132,6 +132,7 @@ if args.media in ["both", "movie"]:
             movie_tmdb_objects.append(json.loads(line.decode()))
         movie_tmdb_ids = [obj["id"] for obj in movie_tmdb_objects]
     print(f"Adding Data for {len(movie_tmdb_ids)} films.")
+    del response
 
     worker_inputs = list(zip(movie_tmdb_ids, ["movie"] * len(movie_tmdb_ids)))
 
@@ -182,6 +183,7 @@ if args.media in ["both", "tv"]:
         for line in gz:
             tv_series_objects.append(json.loads(line.decode()))
         tv_tmdb_ids = [obj["id"] for obj in tv_series_objects]
+    del tv_response
 
     print(f"Adding Data for {len(tv_tmdb_ids)} TV Series.")
 

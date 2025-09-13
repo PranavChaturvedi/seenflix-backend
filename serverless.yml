@@ -55,16 +55,33 @@ custom:
 
 
 functions:
-  # Fargate Task for loading the DB.
-  imdbCronLoader:
+  # Fargate Task for loading the DB - Movies (even weeks)
+  imdbCronLoaderMovies:
     handler: lambda_functions.imdb_cron_loader.handler
-    description: CRON lambda to run ECS Fargate task for loading db
+    description: CRON lambda to run ECS Fargate task for loading movie db (even weeks)
     events:
       - schedule: 
-          rate: cron(0 0 ? * SUN *)
-          enabled: false
+          rate: cron(0 0 ? * SUN *)  # Every other Sunday starting even weeks
+          enabled: true
+          input:
+            type: "movie"
+            week_pattern: "even"
     timeout: 30
 
+  # Fargate Task for loading the DB - TV Shows (odd weeks)
+  imdbCronLoaderTv:
+    handler: lambda_functions.imdb_cron_loader.handler
+    description: CRON lambda to run ECS Fargate task for loading tv db (odd weeks)
+    events:
+      - schedule: 
+          rate: cron(0 0 ? * SUN *)  # Every other Sunday starting odd weeks
+          enabled: true
+          input:
+            type: "tv"
+            week_pattern: "odd"
+    timeout: 30
+  
+  
   addEntry:
     handler: lambda_functions.add_entry.handler
     description: Add Entry for a User in the DB
